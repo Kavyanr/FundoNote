@@ -1,8 +1,5 @@
 package com.bridgelabz.app.serviceimpl;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.List;
 import java.util.Optional;
 
 import javax.mail.MessagingException;
@@ -15,52 +12,49 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import com.bridgelabz.app.model.LoginRequest;
 import com.bridgelabz.app.model.User;
 import com.bridgelabz.app.repository.UserRepository;
 import com.bridgelabz.app.service.UserService;
-import com.bridgelabz.app.util.JsonToken;
-import com.bridgelabz.app.util.Util;
+import com.bridgelabz.app.util.Encryption;
+import com.bridgelabz.app.util.JWTUtil;
 
 @Service
 @Transactional
 public class UserServiceImpl implements UserService {
     @Autowired
-    public UserRepository userRep;
+    private UserRepository userRep;
     @Autowired
    private JavaMailSender sender;
-    @Autowired
-    private JsonToken jsonToken;
    
     String secretKey;
     String subject;
 
     @Override
-    public String login(User user) {
-        String password = encryptedPassword(user);
-        List<User> userList = userRep.findByIdAndPassword(user.getId(), password);
-        System.out.println("idddd :" + user.getId());
-        System.out.println("SIZE : " + userList.size());
+    public String login(LoginRequest loginReq) {
+    	Optional<User> maybeUser = userRep.findByEmailAndPassword(loginReq.getEmail(),
+    			Encryption.encryptedPassword(loginReq.getPassword()));
+    	System.out.println(maybeUser);
 
-        if (userList.size() > 0 && userList != null) {
-            System.out.println("Sucessful login");
-            return jsonToken.jwtToken(password, userList.get(0).getId());
-        } else
-            System.out.println("wrong Id or password");
-        return "wrong id or password";
+    	if (maybeUser.isPresent()) {
+    	System.out.println("Sucessful login");
+    	return JWTUtil.jwtToken(Encryption.encryptedPassword(loginReq.getPassword()), maybeUser.get().getId());
+    	} 
+    	else
+    	return "Invalid User";
     }
-
     @Override
     public User update(String token, User user) {
-        int varifiedUserId = jsonToken.tokenVerification(token);
+        int verifiedUserId = JWTUtil.tokenVerification(token);
 
-        Optional<User> maybeUser = userRep.findById(varifiedUserId);
+        Optional<User> maybeUser = userRep.findById(verifiedUserId);
         User presentUser = maybeUser.map(existingUser -> {
             existingUser.setEmail(user.getEmail() != null ? user.getEmail() : maybeUser.get().getEmail());
             existingUser.setPhonenumber(
                     user.getPhonenumber() != null ? user.getPhonenumber() : maybeUser.get().getPhonenumber());
             existingUser.setName(user.getName() != null ? user.getName() : maybeUser.get().getName());
             existingUser
-                    .setPassword(user.getPassword() != null ? encryptedPassword(user) : maybeUser.get().getPassword());
+                    .setPassword(user.getPassword() != null ? Encryption.encryptedPassword(user.getPassword()) : maybeUser.get().getPassword());
             return existingUser;
         }).orElseThrow(() -> new RuntimeException("User Not Found"));
 
@@ -69,8 +63,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean delete(String token) {
-        int varifiedUserId = jsonToken.tokenVerification(token);
-        Optional<User> maybeUser = userRep.findById(varifiedUserId);
+        int verifiedUserId = JWTUtil.tokenVerification(token);
+        Optional<User> maybeUser = userRep.findById(verifiedUserId);
         return maybeUser.map(existingUser -> {
             userRep.delete(existingUser);
             return true;
@@ -79,7 +73,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User userRegistration(User user,HttpServletRequest request) {
-        user.setPassword(encryptedPassword(user));
+        user.setPassword(Encryption.encryptedPassword(user.getPassword()));
         
         userRep.save(user);
         Optional<User> user1= userRep.findById(user.getId());
@@ -87,7 +81,7 @@ public class UserServiceImpl implements UserService {
             System.out.println("Sucessfull reg");
             //Optional<User> maybeUser = userRep.findById(user.getId());
             
-            String tokenGen = jsonToken.jwtToken("secretKey", user1.get().getId());
+            String tokenGen = JWTUtil.jwtToken("secretKey", user1.get().getId());
             
             User u=user1.get();
             StringBuffer requestUrl = request.getRequestURL();
@@ -107,37 +101,8 @@ public class UserServiceImpl implements UserService {
         return null;
     }
 
-    @Override
-    public String encryptedPassword(User user) {
-        String passwordToHash = user.getPassword();
-        System.out.println("password: " + passwordToHash);
-        String generatedPassword = null;
-        try {
-            // Create MessageDigest instance for MD5
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            // Add password bytes to digest
-            md.update(passwordToHash.getBytes());
-            // Get the hash's bytes
-            byte[] bytes = md.digest();
-            // This bytes[] has bytes in decimal format;
-            // Convert it to hexadecimal format
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < bytes.length; i++) {
-                sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
-            }
-            // Get complete hashed password in hex format
-            generatedPassword = sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-        System.out.println("generated password :" + generatedPassword);
-
-        return generatedPassword;
-
-    }
-
-    
-
+   
+   
     @Override
     public User getUserInfoByEmail(String email) {
         return userRep.findByEmail(email);

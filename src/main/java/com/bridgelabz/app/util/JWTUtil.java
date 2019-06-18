@@ -13,13 +13,13 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.impl.crypto.MacProvider;
 @Service
-public class Util implements JsonToken{
+public class JWTUtil {
 	private static final Key secret = MacProvider.generateKey(SignatureAlgorithm.HS256);
     private static final byte[] secretBytes = secret.getEncoded();
     private static final String base64SecretBytes = Base64.getEncoder().encodeToString(secretBytes);
 
-  @Override
-    public  String jwtToken(String secretKey, int id) {
+ 
+    public static String jwtToken(String secretKey, int id) {
         long nowMillis = System.currentTimeMillis();
         Date now = new Date(nowMillis);
 
@@ -31,8 +31,8 @@ public class Util implements JsonToken{
         return token;
     }
 
-  @Override
-    public  int tokenVerification(String token) {
+
+    public static int tokenVerification(String token) {
         // This line will throw an exception if it is not a signed JWS (as expected)
         if (StringUtils.isEmpty(token)) {
         }

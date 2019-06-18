@@ -1,9 +1,11 @@
 package com.bridgelabz.app.model;
 
-import java.security.Timestamp;
+import java.time.LocalDateTime;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 @Entity
@@ -11,12 +13,13 @@ import javax.persistence.Table;
 public class Note {
 	
 	@Id
+	@GeneratedValue(strategy=GenerationType.AUTO)
 	@Column(name = "noteid")
 	private int noteId;
 	private String title;
 	private String description;
-	private Timestamp creadtedtime;
-	private Timestamp updatetime;
+	private LocalDateTime creadtedtime;
+	private  LocalDateTime updatetime;
 	private boolean isarchive;
 	private boolean ispinned;
 	private boolean intrash;
@@ -41,16 +44,18 @@ public class Note {
 	public void setDescription(String description) {
 		this.description = description;
 	}
-	public Timestamp getCreadtedtime() {
+	
+	
+	public LocalDateTime getCreadtedtime() {
 		return creadtedtime;
 	}
-	public void setCreadtedtime(Timestamp creadtedtime) {
+	public void setCreadtedtime(LocalDateTime creadtedtime) {
 		this.creadtedtime = creadtedtime;
 	}
-	public Timestamp getUpdatetime() {
+	public LocalDateTime getUpdatetime() {
 		return updatetime;
 	}
-	public void setUpdatetime(Timestamp updatetime) {
+	public void setUpdatetime(LocalDateTime updatetime) {
 		this.updatetime = updatetime;
 	}
 	public boolean isIsarchive() {

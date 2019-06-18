@@ -10,11 +10,12 @@ import org.springframework.stereotype.Repository;
 import com.bridgelabz.app.model.Note;
 
 @Repository
-public interface NoteRepository extends JpaRepository<Note, Integer>{
+public interface NoteRepository extends JpaRepository<Note, Long>{
       
 	public List<Note> findByUserId(int varifiedUserId);
 
 	public Optional<Note> findByUserIdAndNoteId(int varifiedUserId, int noteid);
+	 void deleteByNoteId(int noteId);
 
 	public void deleteByUserIdAndNoteId(int varifiedUserId, int noteId);
 

@@ -2,29 +2,35 @@ package com.bridgelabz.app.service;
 
 
 import java.util.List;
+import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
 
-
-import com.bridgelabz.app.model.Lable;
+import com.bridgelabz.app.model.Label;
 import com.bridgelabz.app.model.Note;
+
+
+
 
 public interface NoteService {
 
 	Note updateNote(String header, Note note);
+	//public Note noteCreate(Note note, HttpServletRequest request);
 
-	public Note noteCreate(Note note, HttpServletRequest request);
+	public Note noteCreate(Note note, String token);
 
-	boolean deleteNote(String token, Note note);
+	//boolean deleteNote(String token, Note note);
 
-	List<Note> fetchNote(String header);
+	List<Note> getNotes(String header);
 	
-	Lable updateLable(String header, Lable lable);
+	Label updateLabel(String header, Label label);
 
-    Lable createLable(String header, Lable lable);
+    Label createLabel(String header, Label label);
 
-    boolean deleteLable(String token, Lable lable);
+    boolean deleteLabel(String token, Label label);
 
-    List<Lable> fetchLable(String header);
+    Optional<Label> getLabels(String header);
+
+	String deleteNote(int noteId);
 
 }

@@ -1,5 +1,6 @@
 package com.bridgelabz.app.controller;
 
+import java.util.List;
 import java.util.Optional;
 
 import javax.mail.MessagingException;
@@ -8,25 +9,36 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.bridgelabz.app.model.LoginRequest;
 import com.bridgelabz.app.model.User;
+import com.bridgelabz.app.repository.UserRepository;
 import com.bridgelabz.app.service.UserService;
-import com.bridgelabz.app.util.JsonToken;
-import com.bridgelabz.app.util.Util;
+import com.bridgelabz.app.util.JWTUtil;
+
 
 @RestController
+@RequestMapping("/")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class LoginController {
     @Autowired
-    UserService userService;
- @Autowired 
- private JsonToken jsonToken;
-   
+    private UserService userService;
+    
+    @Autowired
+    private UserRepository userRepository;
+ 
     @Autowired
     private JavaMailSender sender;
 
@@ -48,24 +60,34 @@ public class LoginController {
         return "Mail Sent Success!";
     }
 
-    @RequestMapping(value = "/login", method = RequestMethod.POST)
-    public String geteUserByLogin(@RequestBody User user, HttpServletRequest reuest, HttpServletResponse response) {
+    @PostMapping(value = "/login")
+    public ResponseEntity<?> getUserByLogin(@RequestBody LoginRequest loginRequest, HttpServletRequest reuest, HttpServletResponse response) {
 
-        String token = userService.login(user);
+        String token = userService.login(loginRequest);
         response.setHeader("token", token);
 
         System.out.println("token is ********* :" + token);
-        return "user->" + token;
-    }
+          //return "user->" + token;
+        if (token != null) {
+        	response.setHeader("token", token);
+        	response.addHeader("Access-control-Allow-Headers", "*");
+        	response.addHeader("Access-control-Expose-Headers", "*");
+        	return new ResponseEntity<>( HttpStatus.OK);
+        	}
+        	else {
+        	return new ResponseEntity<>("{invalid user}", HttpStatus.BAD_REQUEST);
+        	}
+        	}
 
-    @RequestMapping(value = "/updateuser", method = RequestMethod.PUT)
-    public void updateuser(@RequestBody User user, HttpServletRequest request) {
+
+    @PutMapping(value = "/updateuser")
+    public void updateUser(@RequestBody User user, HttpServletRequest request) {
         System.out.println("I am  token at update method :" + request.getHeader("token"));
         userService.update(request.getHeader("token"), user);
     }
 
-    @RequestMapping(value = "/deleteuser", method = RequestMethod.DELETE)
-    public void deleteuser(HttpServletRequest request) {
+    @DeleteMapping(value = "/deleteuser")
+    public void deleteUser(HttpServletRequest request) {
 
         System.out.println("I am  token at delete method :" + request.getHeader("token"));
         boolean b = userService.delete(request.getHeader("token"));
@@ -73,12 +95,12 @@ public class LoginController {
 
     }
 
-    @RequestMapping(value = "/forgotpassword", method = RequestMethod.POST)
-    public String forgotpassword(@RequestBody User user, HttpServletRequest request) {
+    @PostMapping(value = "/forgotpassword")
+    public String forgotPassword(@RequestBody User user, HttpServletRequest request) {
         User userInfo = userService.getUserInfoByEmail(user.getEmail());
 
         if (userInfo != null) {
-            String token = jsonToken.jwtToken("secretKey", userInfo.getId());
+            String token = JWTUtil.jwtToken("secretKey", userInfo.getId());
             
             StringBuffer requestUrl = request.getRequestURL();
             System.out.println(requestUrl);
@@ -94,27 +116,25 @@ public class LoginController {
             return "not sent";    
     }
 
-    @RequestMapping(value = "/resetpassword", method = RequestMethod.PUT)
+    @PutMapping(value = "/resetpassword")
     public void resetPassword(@RequestBody User user, HttpServletRequest request) {
-        // User userInfo=userService.getUserInfoByEmail(user.getEmail());
-        int id = jsonToken.tokenVerification(request.getHeader("token"));
+        int id = JWTUtil.tokenVerification(request.getHeader("token"));
 
         if (id != 0) {
 
             Optional<User> userinfo = userService.findById(id);
             User usr = userinfo.get();
             usr.setPassword(user.getPassword());
-            /* usr.setStatus("1"); */
             userService.update(request.getHeader("token"), usr);
         }
 
     }
-    @RequestMapping(value = "/sendtomail", method = RequestMethod.POST)
-    public String sendtomail(@RequestBody User user, HttpServletRequest request) {
+    @PostMapping(value = "/sendtomail")
+    public String sendToMail(@RequestBody User user, HttpServletRequest request) {
         User userInfo = userService.getUserInfoByEmail(user.getEmail());
 
         if (userInfo != null) {
-            String token = jsonToken.jwtToken("secretKey", userInfo.getId());
+            String token = JWTUtil.jwtToken("secretKey", userInfo.getId());
             
             StringBuffer requestUrl = request.getRequestURL();
             System.out.println(requestUrl);
@@ -131,10 +151,9 @@ public class LoginController {
     }
 
 
-@RequestMapping(value = "/activestatus", method = RequestMethod.PUT)
-public void activestatus( HttpServletRequest request) {
-    // User userInfo=userService.getUserInfoByEmail(user.getEmail());
-    int id = jsonToken.tokenVerification(request.getHeader("token"));
+@PutMapping(value = "/activeStatus")
+public void activeStatus( HttpServletRequest request) {
+    int id = JWTUtil.tokenVerification(request.getHeader("token"));
 
     if (id != 0) {
 
@@ -143,5 +162,12 @@ public void activestatus( HttpServletRequest request) {
         usr.setStatus("1"); 
         userService.update(request.getHeader("token"), usr);
     }
+}
+
+@GetMapping(value="/fetch")
+public List<User> fetch(HttpServletRequest request)
+{
+	return userRepository.findAll();
+	
 }
 }
